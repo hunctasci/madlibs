@@ -26,9 +26,34 @@
  * There are multiple ways to do this, but you may want to use regular expressions.
  * Please go through this lesson: https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/regular-expressions/
  */
+
 function parseStory(rawStory) {
-  // Your code here.
-  return {}; // This line is currently wrong :)
+  const regex = /[a-zA-Z]+\[(v|a|n)\]|\b[a-zA-Z]+\b/g;
+  // console.log(rawStory.match(regex));
+  return rawStory.match(regex).map((match) => {
+    const word = match.replace(/\[.*?\]/, "");
+    let pos;
+    const posMatch = match.match(/\[(v|a|n)\]/);
+    if (posMatch) {
+      [, pos] = posMatch;
+      switch (pos) {
+        case "v":
+          pos = "verb";
+          break;
+        case "a":
+          pos = "adjective";
+          break;
+        case "n":
+          pos = "noun";
+          break;
+        default:
+          pos = undefined;
+      }
+    }
+
+    // console.log({ word, pos });
+    return { word, pos };
+  });
 }
 
 /**
@@ -45,5 +70,59 @@ function parseStory(rawStory) {
 getRawStory()
   .then(parseStory)
   .then((processedStory) => {
-    console.log(processedStory);
+    const madLibsEdit = document.querySelector(".madLibsEdit");
+    const madLibsPreview = document.querySelector(".madLibsPreview");
+    let wordCount = 0;
+    for (const word of processedStory) {
+      if (word.pos) {
+        word.word = "";
+        const input = document.createElement("input");
+        input.setAttribute("type", "text");
+        input.classList.add(`input-${wordCount++}`);
+        setEventOfInput(input);
+        setEnterKeypress(input, wordCount);
+        input.setAttribute("placeholder", word.pos);
+        madLibsEdit.appendChild(input);
+        const result = document.createElement("span");
+        result.innerText = " _____";
+        result.classList.add(`result-${wordCount - 1}`, "result");
+        madLibsPreview.appendChild(result);
+        continue;
+      }
+      const el = document.createElement("span");
+      el.innerText = word.word.match(/[a-zA-Z]/) ? ` ${word.word}` : word.word;
+      madLibsEdit.appendChild(el.cloneNode(true));
+      madLibsPreview.appendChild(el);
+    }
   });
+
+function setEventOfInput(input) {
+  // onInput
+  input.addEventListener("input", () => {
+    const inputClassNumber = parseInt(
+      input.classList[input.classList.length - 1].split("-")[1]
+    );
+    const madLibsEdit = document.querySelector(".madLibsEdit");
+    const madLibsPreview = document.querySelector(".madLibsPreview");
+    const inputEdit = madLibsEdit.querySelector(`.input-${inputClassNumber}`);
+    const inputPreview = madLibsPreview.querySelector(
+      `.result-${inputClassNumber}`
+    );
+    inputEdit.value = input.value;
+    if (inputEdit.value.length < 20) {
+      inputPreview.innerText = inputEdit.value ? ` ${input.value}` : " ______";
+    } else {
+      input.value = input.value.substring(0, 20);
+      alert("you can type max 20 characters");
+    }
+  });
+}
+
+function setEnterKeypress(input, count) {
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      let nextInput = document.querySelector(`.input-${count}`);
+      nextInput?.focus();
+    }
+  });
+}
